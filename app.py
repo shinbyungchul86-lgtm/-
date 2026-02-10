@@ -41,7 +41,6 @@ raw_data = st.text_area("", height=150, label_visibility="collapsed")
 
 # --- [중단] 업데이트 버튼 (X축 정중앙 배치) ---
 st.markdown("<br>", unsafe_allow_html=True)
-# 3개 컬럼을 1:1:1로 나누어 중앙 버튼 배치
 _, col_center, _ = st.columns([1, 1, 1])
 
 with col_center:
@@ -78,7 +77,6 @@ with col_center:
                 st.rerun() 
             except: st.error("데이터 처리 오류")
     
-    # 시간을 버튼 아래로 배치 (중앙 정렬)
     st.markdown(f"<div style='text-align: center; font-weight: bold; margin-top: 15px; font-size: 14px;'>{st.session_state.last_updated}</div>", unsafe_allow_html=True)
 
 # --- [하단] 재고현황표 도식화 데이터 계산 ---
@@ -89,11 +87,23 @@ total_stock = sum(int(info["재고량"]) for info in st.session_state.inventory_
 rect_sum = sum(int(st.session_state.inventory_data.get(n, {"재고량":0})["재고량"]) for n in rect_names)
 circle_sum = sum(int(st.session_state.inventory_data.get(n, {"재고량":0})["재고량"]) for n in circle_names)
 
-def get_item_html(name, qty_color="black", is_rect=False):
+# 텍스트 색상 변경 로직 적용 함수
+def get_item_html(name, is_rect=False):
     data = st.session_state.inventory_data.get(name, {"곡종": "-", "재고량": 0})
     qty_f = "{:,}".format(data.get("재고량", 0))
-    crop_color = "#000050" if is_rect else "blue" # 사각형 곡종: 짙은 감색
-    name_color = "#555555" # 장치장 이름: 짙은 회색
+    
+    # 공통: 장치장(3번째 행)은 짙은 회색
+    name_color = "#555555"
+    
+    if is_rect:
+        # 사각형 구조용 색상 설정
+        crop_color = "orange"  # 첫 번째 행: 주황색
+        qty_color = "black"    # 두 번째 행: 검은색
+    else:
+        # 동그라미 구조용 (기존 유지 혹은 필요시 변경)
+        crop_color = "blue"
+        qty_color = "black"
+    
     return f'<div style="color: {crop_color}; font-weight: bold; font-size: 12px;">{data["곡종"]}</div>' \
            f'<div style="color: {qty_color}; font-weight: bold; font-size: 14px;">{qty_f}</div>' \
            f'<div style="color: {name_color}; font-size: 11px;">{name}</div>'
@@ -101,13 +111,13 @@ def get_item_html(name, qty_color="black", is_rect=False):
 # 도면 구조 정의
 rows_data = [
     {"type": "circle", "names": [f"A10{i}" for i in range(1, 7)]},
-    {"type": "rect",   "names": [f"A20{i}" for i in range(1, 8)], "color": "#000080"},
+    {"type": "rect",   "names": [f"A20{i}" for i in range(1, 8)]},
     {"type": "circle", "names": [f"A30{i}" for i in range(1, 7)]},
-    {"type": "rect",   "names": [f"A40{i}" for i in range(1, 8)], "color": "#4b4b4b"},
+    {"type": "rect",   "names": [f"A40{i}" for i in range(1, 8)]},
     {"type": "circle", "names": [f"A50{i}" for i in range(1, 7)]}
 ]
 
-# 전체 HTML 생성 (한 덩어리로 묶어 코드 노출 방지)
+# 전체 HTML 생성
 final_html = f"""
 <div style="background-color: #eeeeee; border: 1px solid #ccc; padding: 40px 20px 100px 20px; border-radius: 10px; display: flex; flex-direction: column; align-items: center; font-family: 'Malgun Gothic', sans-serif;">
     <h2 style="text-align: center; text-decoration: underline; font-weight: bold; margin: 0 0 25px 0; font-size: 28px; letter-spacing: 0.25em;">일 일 재 고 현 황 표</h2>
@@ -127,12 +137,11 @@ for r_idx, row in enumerate(rows_data):
     final_html += f'<div style="display: flex; justify-content: center; margin: {row_margin}; z-index: {"2" if is_c else "1"}; gap: {row_gap};">'
     for name in row["names"]:
         if is_c:
-            final_html += f'<div style="width: 88px; height: 88px; border: 2px solid #333; border-radius: 50%; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 2px 2px 5px rgba(0,0,0,0.1);">{get_item_html(name)}</div>'
+            final_html += f'<div style="width: 88px; height: 88px; border: 2px solid #333; border-radius: 50%; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 2px 2px 5px rgba(0,0,0,0.1);">{get_item_html(name, is_rect=False)}</div>'
         else:
-            final_html += f'<div style="width: 110px; height: 160px; border: 2px solid #333; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; margin-left: -2px;">{get_item_html(name, row.get("color", "black"), is_rect=True)}</div>'
+            final_html += f'<div style="width: 110px; height: 160px; border: 2px solid #333; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; margin-left: -2px;">{get_item_html(name, is_rect=True)}</div>'
     final_html += '</div>'
 
 final_html += "</div></div>"
 
-# 최종 출력
 st.markdown(final_html, unsafe_allow_html=True)
