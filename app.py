@@ -4,7 +4,7 @@ from datetime import datetime
 
 # 1. 페이지 설정 및 제목
 st.set_page_config(layout="wide")
-st.markdown("<h1 style='text-align: center; text-decoration: underline;'>일&nbsp;&nbsp;일&nbsp;&nbsp;재&nbsp;&nbsp;고&nbsp;&nbsp;현&nbsp;&nbsp;황&nbsp;&nbsp;표</h1>", unsafe_allow_label=True)
+st.markdown("<h1 style='text-align: center; text-decoration: underline;'>일&nbsp;&nbsp;일&nbsp;&nbsp;재&nbsp;&nbsp;고&nbsp;&nbsp;현&nbsp;&nbsp;황&nbsp;&nbsp;표</h1>", unsafe_allow_html=True)
 
 # --- 상단: 데이터 입력 섹션 ---
 st.subheader("데이터 입력 (엑셀 복사/붙여넣기)")
