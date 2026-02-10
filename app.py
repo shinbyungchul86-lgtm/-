@@ -81,70 +81,74 @@ with col_center:
     st.markdown(f"<div style='text-align: center; font-weight: bold; margin-top: 8px; font-size: 16px;'>{st.session_state.last_updated}</div>", unsafe_allow_html=True)
 
 # --- [하단] 재고현황표 도식화 데이터 계산 ---
-rect_names = [f"A20{i}" for i in range(1, 8)] + [f"A40{i}" for i in range(1, 8)]
-circle_names = [f"A10{i}" for i in range(1, 7)] + [f"A30{i}" for i in range(1, 7)] + [f"A50{i}" for i in range(1, 7)]
+rect_rows = [
+    [f"A20{i}" for i in range(1, 8)], # 사각형 1행
+    [f"A40{i}" for i in range(1, 8)]  # 사각형 2행
+]
+circle_rows = [
+    [f"A10{i}" for i in range(1, 7)], # 동그라미 1행 (사각형 사이)
+    [f"A30{i}" for i in range(1, 7)], # 동그라미 2행 (사각형 사이)
+    [f"A50{i}" for i in range(1, 7)]  # 동그라미 3행 (사각형 사이)
+]
 
 total_stock = sum(int(info["재고량"]) for info in st.session_state.inventory_data.values())
-rect_sum = sum(int(st.session_state.inventory_data.get(n, {"재고량":0})["재고량"]) for n in rect_names)
-circle_sum = sum(int(st.session_state.inventory_data.get(n, {"재고량":0})["재고량"]) for n in circle_names)
+rect_sum = sum(int(st.session_state.inventory_data.get(n, {"재고량":0})["재고량"]) for row in rect_rows for n in row)
+circle_sum = sum(int(st.session_state.inventory_data.get(n, {"재고량":0})["재고량"]) for row in circle_rows for n in row)
 
 def get_item_html(name, is_rect=False):
     data = st.session_state.inventory_data.get(name, {"곡종": "-", "재고량": 0})
     qty_f = "{:,}".format(data.get("재고량", 0))
     name_color = "#555555"
-    
     if is_rect:
-        crop_color = "#FF8C00" # 짙은 주황색
-        qty_color = "black"
+        crop_color = "#FF8C00"; qty_color = "black"
     else:
-        crop_color = "blue"
-        qty_color = "black"
-    
-    return f'<div style="color: {crop_color}; font-weight: bold; font-size: 12px;">{data["곡종"]}</div>' \
-           f'<div style="color: {qty_color}; font-weight: bold; font-size: 14px;">{qty_f}</div>' \
-           f'<div style="color: {name_color}; font-size: 11px;">{name}</div>'
+        crop_color = "blue"; qty_color = "black"
+    return f'<div style="color: {crop_color}; font-weight: bold; font-size: 12px; line-height:1.2;">{data["곡종"]}</div>' \
+           f'<div style="color: {qty_color}; font-weight: bold; font-size: 14px; line-height:1.2;">{qty_f}</div>' \
+           f'<div style="color: {name_color}; font-size: 11px; line-height:1.2;">{name}</div>'
 
-# 도면 구조 정의
-rows_data = [
-    {"type": "circle", "names": [f"A10{i}" for i in range(1, 7)]},
-    {"type": "rect",   "names": [f"A20{i}" for i in range(1, 8)]},
-    {"type": "circle", "names": [f"A30{i}" for i in range(1, 7)]},
-    {"type": "rect",   "names": [f"A40{i}" for i in range(1, 8)]},
-    {"type": "circle", "names": [f"A50{i}" for i in range(1, 7)]}
-]
+# ---------------------------------------------------------
+# 도면 렌더링 로직 (Absolute Layering 방식)
+# ---------------------------------------------------------
+RECT_W = 110
+RECT_H = 160
+CIRC_D = 88
 
-# 전체 HTML 생성
 final_html = f"""
-<div style="background-color: #eeeeee; border: 1px solid #ccc; padding: 40px 20px 100px 20px; border-radius: 10px; display: flex; flex-direction: column; align-items: center; font-family: 'Malgun Gothic', sans-serif;">
+<div style="background-color: #eeeeee; border: 1px solid #ccc; padding: 40px 20px 80px 20px; border-radius: 10px; display: flex; flex-direction: column; align-items: center; font-family: 'Malgun Gothic', sans-serif;">
     <h2 style="text-align: center; text-decoration: underline; font-weight: bold; margin: 0 0 25px 0; font-size: 28px; letter-spacing: 0.25em;">일 일 재 고 현 황 표</h2>
     <div style="min-width: 750px; background: white; padding: 15px 30px; border: 1px solid #333; text-align: center; font-size: 16px; font-weight: bold; margin-bottom: 50px; white-space: nowrap; box-shadow: 2px 2px 5px rgba(0,0,0,0.05);">
         총 재고수량 : <span style="color: red;">{total_stock:,}개</span> / 
         사각형 재고수량 : <span style="color: blue;">{rect_sum:,}개</span> / 
         동그라미 재고수량 : <span style="color: #FF8C00;">{circle_sum:,}개</span>
     </div>
-    <div style="display: flex; flex-direction: column; align-items: center;">
+
+    <div style="position: relative; width: {RECT_W * 7}px; height: 500px; margin-top: 40px;">
 """
 
-for r_idx, row in enumerate(rows_data):
-    is_c = row["type"] == "circle"
-    row_margin = "-44px 0" if is_c and r_idx > 0 else ("0 0 -44px 0" if is_c else "0")
-    
-    final_html += f'<div style="display: flex; justify-content: center; margin: {row_margin}; z-index: {"2" if is_c else "1"};">'
-    for i, name in enumerate(row["names"]):
-        if is_c:
-            # 동그라미 위치 미세 조정 (margin-left/right를 통해 좌우에서 안쪽으로 밀어줌)
-            circle_style = "width: 88px; height: 88px; border: 2px solid #333; border-radius: 50%; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 2px 2px 5px rgba(0,0,0,0.1); margin: 0 11px;"
-            if i == 0: circle_style += " margin-left: 30px;" # 첫번째 동그라미 오른쪽으로
-            if i == 1: circle_style += " margin-left: 30px;" # 두번째 동그라미 오른쪽으로
-            if i == 2: circle_style += " margin-left: 30px;" # 두번째 동그라미 오른쪽으로
-            if i == 3: circle_style += " margin-right: 30px;" # 다섯번째 동그라미 왼쪽으로
-            if i == 4: circle_style += " margin-right: 30px;" # 다섯번째 동그라미 왼쪽으로
-            if i == 5: circle_style += " margin-right: 30px;" # 마지막 동그라미 왼쪽으로
-            
-            final_html += f'<div style="{circle_style}">{get_item_html(name, is_rect=False)}</div>'
-        else:
-            final_html += f'<div style="width: 110px; height: 160px; border: 2px solid #333; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; margin-left: -2px;">{get_item_html(name, is_rect=True)}</div>'
-    final_html += '</div>'
+# 1. 사각형 배치 (A201~A207, A401~A407)
+for r_idx, row in enumerate(rect_rows):
+    y_pos = r_idx * (RECT_H + 80) # 사각형 행 간 간격
+    for c_idx, name in enumerate(row):
+        x_pos = c_idx * (RECT_W - 2) # 테두리 겹침 보정
+        final_html += f'''
+        <div style="position: absolute; left: {x_pos}px; top: {y_pos}px; width: {RECT_W}px; height: {RECT_H}px; border: 2px solid #333; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1;">
+            {get_item_html(name, is_rect=True)}
+        </div>'''
+
+# 2. 동그라미 배치 (사각형 사이 경계선 정중앙)
+# 동그라미 행 위치 정의: 사각형 상단, 사각형 사이, 사각형 하단
+y_offsets = [-CIRC_D/2, RECT_H - CIRC_D/2, (RECT_H + 80) + RECT_H - CIRC_D/2]
+
+for r_idx, row in enumerate(circle_rows):
+    y_pos = y_offsets[r_idx]
+    for c_idx, name in enumerate(row):
+        # 사각형 사이의 경계선 위치 = (현재 사각형의 끝 지점)
+        x_pos = (c_idx + 1) * RECT_W - (CIRC_D / 2) - (c_idx * 2)
+        final_html += f'''
+        <div style="position: absolute; left: {x_pos}px; top: {y_pos}px; width: {CIRC_D}px; height: {CIRC_D}px; border: 2px solid #333; border-radius: 50%; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 2; box-shadow: 2px 2px 5px rgba(0,0,0,0.1);">
+            {get_item_html(name, is_rect=False)}
+        </div>'''
 
 final_html += "</div></div>"
 
