@@ -39,12 +39,12 @@ if 'last_updated' not in st.session_state:
 st.markdown("<h3 style='text-align: center;'>데이터 입력 (엑셀 복사/붙여넣기)</h3>", unsafe_allow_html=True)
 raw_data = st.text_area("", height=150, label_visibility="collapsed")
 
-# --- [중단] 업데이트 버튼 및 시간 (위치 정밀 조정) ---
+# --- [중단] 업데이트 버튼 및 시간 (중앙 정렬 보정) ---
 st.markdown("<br>", unsafe_allow_html=True)
-# 버튼을 오른쪽으로, 시간을 왼쪽으로 붙이기 위해 컬럼 세분화
-_, _, col_btn, col_time, _ = st.columns([1.5, 0.4, 1.3, 1.4, 0.9]) 
+# 버튼을 X축 중앙에 완벽히 배치하기 위해 3개 컬럼 사용 (1:1:1)
+_, col_center, _ = st.columns([1, 1, 1]) 
 
-with col_btn:
+with col_center:
     st.markdown("""
         <style>
         div.stButton > button:first-child {
@@ -77,28 +77,32 @@ with col_btn:
                 save_data(new_inventory, st.session_state.last_updated)
                 st.rerun() 
             except: st.error("데이터 처리 오류")
+    
+    # 시간을 버튼 아래로 이동 (중앙 정렬)
+    st.markdown(f"<div style='text-align: center; font-weight: bold; margin-top: 15px; font-size: 14px; width: 100%;'>{st.session_state.last_updated}</div>", unsafe_allow_html=True)
 
-with col_time:
-    st.markdown(f"<div style='text-align: left; font-weight: bold; margin-top: 15px; font-size: 14px; white-space: nowrap;'>{st.session_state.last_updated}</div>", unsafe_allow_html=True)
-
-# --- [하단] 재고현황표 도식화 ---
+# --- [하단] 재고현황표 도식화 데이터 계산 ---
 st.markdown("<br>", unsafe_allow_html=True)
 
+# 도형별 재고 계산 로직
+rect_names = [f"A20{i}" for i in range(1, 8)] + [f"A40{i}" for i in range(1, 8)]
+circle_names = [f"A10{i}" for i in range(1, 7)] + [f"A30{i}" for i in range(1, 7)] + [f"A50{i}" for i in range(1, 7)]
+
 total_stock = sum(int(info["재고량"]) for info in st.session_state.inventory_data.values())
+rect_stock = sum(int(st.session_state.inventory_data.get(name, {"재고량": 0})["재고량"]) for name in rect_names)
+circle_stock = sum(int(st.session_state.inventory_data.get(name, {"재고량": 0})["재고량"]) for name in circle_names)
 
 def get_item_html(name, qty_color="black", is_rect=False):
     data = st.session_state.inventory_data.get(name, {"곡종": "-", "재고량": 0})
     qty_f = "{:,}".format(data.get("재고량", 0))
     crop_color = "#000050" if is_rect else "blue"
-    name_color = "#555555" # 장치장 이름: 짙은 회색
+    name_color = "#555555" 
     
     return f"""<div style="color: {crop_color}; font-weight: bold; font-size: 12px;">{data['곡종']}</div>
                <div style="color: {qty_color}; font-weight: bold; font-size: 14px;">{qty_f}</div>
                <div style="color: {name_color}; font-size: 11px;">{name}</div>"""
 
-# ---------------------------------------------------------
-# HTML 렌더링 최적화 (코드 노출 방지를 위해 전체를 하나의 블록으로 처리)
-# ---------------------------------------------------------
+# 도면 구조 정의
 rows_data = [
     {"type": "circle", "names": [f"A10{i}" for i in range(1, 7)]},
     {"type": "rect",   "names": [f"A20{i}" for i in range(1, 8)], "color": "#000080"},
@@ -107,12 +111,18 @@ rows_data = [
     {"type": "circle", "names": [f"A50{i}" for i in range(1, 7)]}
 ]
 
+# 전체 HTML 결합
+# 자간(letter-spacing) 0.25em으로 조정 (기존 0.5em의 반)
 main_content = f"""
 <div style="background-color: #eeeeee; border: 1px solid #ccc; padding: 40px 20px 100px 20px; border-radius: 10px; display: flex; flex-direction: column; align-items: center; font-family: sans-serif;">
-    <h2 style="text-align: center; text-decoration: underline; font-weight: bold; margin: 0 0 25px 0; font-size: 28px; letter-spacing: 0.5em; width: 100%;">일 일 재 고 현 황 표</h2>
-    <div style="width: 280px; background: white; padding: 8px; border: 1px solid #333; text-align: center; font-size: 15px; font-weight: bold; margin-bottom: 50px; white-space: nowrap;">
-        총 재고수량: <span style="color: red;">{total_stock:,}</span>
+    <h2 style="text-align: center; text-decoration: underline; font-weight: bold; margin: 0 0 25px 0; font-size: 28px; letter-spacing: 0.25em; width: 100%;">일 일 재 고 현 황 표</h2>
+    
+    <div style="width: auto; min-width: 600px; background: white; padding: 10px 20px; border: 1px solid #333; text-align: center; font-size: 15px; font-weight: bold; margin-bottom: 50px; white-space: nowrap;">
+        총 재고수량 : <span style="color: red;">{total_stock:,}개</span> / 
+        사각형 재고수량 : <span style="color: blue;">{rect_stock:,}개</span> / 
+        동그라미 재고수량 : <span style="color: green;">{circle_stock:,}개</span>
     </div>
+    
     <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
 """
 
@@ -132,5 +142,4 @@ for r_idx, row in enumerate(rows_data):
 
 main_content += "</div></div>"
 
-# 최종적으로 단 한 번만 markdown 호출
 st.markdown(main_content, unsafe_allow_html=True)
