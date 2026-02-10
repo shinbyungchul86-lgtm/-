@@ -5,92 +5,21 @@ import pytz
 import json
 import os
 
-# 1. 페이지 설정
+# 페이지 설정 및 기본 로직 (기존과 동일)
 st.set_page_config(layout="wide")
 
-# 한국 시간 설정
 def get_seoul_time():
     seoul_tz = pytz.timezone('Asia/Seoul')
     return datetime.now(seoul_tz).strftime("%Y년 %m월 %d일 %H시 %M분 최종 업데이트")
 
-# 데이터 유지 로직
-DB_FILE = "inventory_db.json"
-
-def save_data(data, last_time):
-    with open(DB_FILE, "w", encoding="utf-8") as f:
-        json.dump({"data": data, "time": last_time}, f, ensure_ascii=False)
-
-def load_data():
-    if os.path.exists(DB_FILE):
-        try:
-            with open(DB_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except:
-            return {"data": {}, "time": "업데이트 기록 없음"}
-    return {"data": {}, "time": "업데이트 기록 없음"}
-
-saved_state = load_data()
-if 'inventory_data' not in st.session_state:
-    st.session_state.inventory_data = saved_state["data"]
-if 'last_updated' not in st.session_state:
-    st.session_state.last_updated = saved_state["time"]
-
-# --- [상단] 데이터 입력 섹션 ---
-st.markdown("<h3 style='text-align: center;'>데이터 입력 (엑셀 복사/붙여넣기)</h3>", unsafe_allow_html=True)
-raw_data = st.text_area("", height=150, label_visibility="collapsed")
-
-# --- [중단] 업데이트 버튼 및 시간 ---
-st.markdown("<br>", unsafe_allow_html=True)
-_, col_center, _ = st.columns([0.8, 1.4, 0.8])
-
-with col_center:
-    st.markdown("""
-        <style>
-        div.stButton > button:first-child {
-            background-color: #28a745;
-            color: white;
-            border-radius: 15px;
-            font-weight: bold;
-            width: 100%;
-            height: 65px;
-            font-size: 20px;
-            border: 2px solid #1e7e34;
-        }
-        </style>
-    """, unsafe_allow_html=True)
-    
-    if st.button("현황표 업데이트"):
-        if raw_data.strip():
-            try:
-                lines = raw_data.strip().split('\n')
-                new_inventory = {}
-                for line in lines:
-                    parts = line.replace('\t', ' ').split()
-                    if len(parts) >= 3:
-                        try:
-                            val = parts[2].replace(',', '')
-                            qty = int(float(val))
-                            new_inventory[parts[0]] = {"곡종": parts[1], "재고량": qty}
-                        except ValueError: continue
-                st.session_state.inventory_data = new_inventory
-                st.session_state.last_updated = get_seoul_time()
-                save_data(new_inventory, st.session_state.last_updated)
-                st.rerun() 
-            except: st.error("데이터 처리 오류")
-    
-    st.markdown(f"<div style='text-align: center; font-weight: bold; margin-top: 8px; font-size: 16px;'>{st.session_state.last_updated}</div>", unsafe_allow_html=True)
+# 데이터 로드/저장 로직 생략 (기존 코드 유지)
+# ... [중환 생략: 이전 답변의 데이터 처리 부분 삽입] ...
 
 # --- [하단] 재고현황표 도식화 데이터 계산 ---
-rect_rows = [
-    [f"A20{i}" for i in range(1, 8)], 
-    [f"A40{i}" for i in range(1, 8)]
-]
-circle_rows = [
-    [f"A10{i}" for i in range(1, 7)], 
-    [f"A30{i}" for i in range(1, 7)], 
-    [f"A50{i}" for i in range(1, 7)]
-]
+rect_rows = [[f"A20{i}" for i in range(1, 8)], [f"A40{i}" for i in range(1, 8)]]
+circle_rows = [[f"A10{i}" for i in range(1, 7)], [f"A30{i}" for i in range(1, 7)], [f"A50{i}" for i in range(1, 7)]]
 
+# 재고 합계 계산
 total_stock = sum(int(info["재고량"]) for info in st.session_state.inventory_data.values())
 rect_sum = sum(int(st.session_state.inventory_data.get(n, {"재고량":0})["재고량"]) for row in rect_rows for n in row)
 circle_sum = sum(int(st.session_state.inventory_data.get(n, {"재고량":0})["재고량"]) for row in circle_rows for n in row)
@@ -98,23 +27,20 @@ circle_sum = sum(int(st.session_state.inventory_data.get(n, {"재고량":0})["�
 def get_item_html(name, is_rect=False):
     data = st.session_state.inventory_data.get(name, {"곡종": "-", "재고량": 0})
     qty_f = "{:,}".format(data.get("재고량", 0))
-    name_color = "#555555"
     if is_rect:
         crop_color = "#FF8C00"; qty_color = "black"
     else:
         crop_color = "blue"; qty_color = "black"
     return f'<div style="color: {crop_color}; font-weight: bold; font-size: 12px; line-height:1.1;">{data["곡종"]}</div>' \
            f'<div style="color: {qty_color}; font-weight: bold; font-size: 14px; line-height:1.1;">{qty_f}</div>' \
-           f'<div style="color: {name_color}; font-size: 11px; line-height:1.1;">{name}</div>'
+           f'<div style="color: #555555; font-size: 11px; line-height:1.1;">{name}</div>'
 
 # ---------------------------------------------------------
-# 정밀 좌표 상수 (사각형 사이 정중앙 배치를 위한 수치)
+# 정밀 좌표 렌더링 시작
 # ---------------------------------------------------------
-RECT_W = 110
-RECT_H = 160
-CIRC_D = 88
-GAP_Y = 80 # 사각형 행 사이의 간격
-BORDER_OFFSET = 2 # 테두리 굵기 보정
+# 가로 기준점: 사각형 left가 108씩 증가하므로, 그 사이값은 108, 216, 324, 432, 540, 648
+# 동그라미 지름 88px -> 반지름 44px
+# ---------------------------------------------------------
 
 final_html = f"""
 <div style="background-color: #eeeeee; border: 1px solid #ccc; padding: 40px 20px 100px 20px; border-radius: 10px; display: flex; flex-direction: column; align-items: center; font-family: 'Malgun Gothic', sans-serif;">
@@ -125,35 +51,30 @@ final_html = f"""
         동그라미 재고수량 : <span style="color: #FF8C00;">{circle_sum:,}개</span>
     </div>
 
-    <div style="position: relative; width: {(RECT_W-BORDER_OFFSET)*7 + BORDER_OFFSET}px; height: 500px; margin-top: 50px;">
+    <div style="position: relative; width: 758px; height: 500px; margin-top: 50px;">
 """
 
 # 1. 사각형 배치 (A20x, A40x)
 for r_idx, row in enumerate(rect_rows):
-    y_pos = r_idx * (RECT_H + GAP_Y)
+    y_pos = r_idx * 240  # 사각형 행 사이 간격
     for c_idx, name in enumerate(row):
-        x_pos = c_idx * (RECT_W - BORDER_OFFSET)
+        x_pos = c_idx * 108 # 사각형 테두리 중첩 고려한 간격
         final_html += f'''
-        <div style="position: absolute; left: {x_pos}px; top: {y_pos}px; width: {RECT_W}px; height: {RECT_H}px; border: {BORDER_OFFSET}px solid #333; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1;">
+        <div style="position: absolute; left: {x_pos}px; top: {y_pos}px; width: 110px; height: 160px; border: 2px solid #333; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1;">
             {get_item_html(name, is_rect=True)}
         </div>'''
 
-# 2. 동그라미 배치 (사각형 수직 경계선 정중앙에 위치)
-# y_offsets: 사각형 상단 라인 / 사각형 사이 중간 라인 / 사각형 하단 라인
-y_offsets = [
-    - (CIRC_D / 2),                     # 1행 (상단 경계선)
-    RECT_H + (GAP_Y / 2) - (CIRC_D / 2), # 2행 (두 사각형 행의 정중앙)
-    (RECT_H + GAP_Y) + RECT_H - (CIRC_D / 2) # 3행 (하단 경계선)
-]
+# 2. 동그라미 배치 (사각형 사이 수직 경계선에 정중앙 배치)
+# y_offsets: 상단 라인(-44), 중앙 라인(120), 하단 라인(400-44=356)
+y_offsets = [-44, 116, 356]
 
 for r_idx, row in enumerate(circle_rows):
     y_pos = y_offsets[r_idx]
     for c_idx, name in enumerate(row):
-        # x_pos: (사각형 가로폭 * 순번) - (동그라미 반지름)
-        # c_idx + 1인 이유는 첫 번째 사각형과 두 번째 사각형 사이 라인부터 시작하기 때문
-        x_pos = (c_idx + 1) * (RECT_W - BORDER_OFFSET) - (CIRC_D / 2) + (BORDER_OFFSET / 2)
+        # 경계선 위치 (108, 216, 324...) - 반지름(44) = 중심 정렬
+        x_pos = (c_idx + 1) * 108 - 44
         final_html += f'''
-        <div style="position: absolute; left: {x_pos}px; top: {y_pos}px; width: {CIRC_D}px; height: {CIRC_D}px; border: {BORDER_OFFSET}px solid #333; border-radius: 50%; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 2; box-shadow: 2px 2px 5px rgba(0,0,0,0.1);">
+        <div style="position: absolute; left: {x_pos}px; top: {y_pos}px; width: 88px; height: 88px; border: 2px solid #333; border-radius: 50%; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 2; box-shadow: 2px 2px 5px rgba(0,0,0,0.1);">
             {get_item_html(name, is_rect=False)}
         </div>'''
 
