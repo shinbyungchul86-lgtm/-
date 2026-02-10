@@ -35,16 +35,16 @@ if 'inventory_data' not in st.session_state:
 if 'last_updated' not in st.session_state:
     st.session_state.last_updated = saved_state["time"]
 
-# --- [상단] 데이터 입력 섹션 (중앙 정렬) ---
+# --- [상단] 데이터 입력 섹션 ---
 st.markdown("<h3 style='text-align: center;'>데이터 입력 (엑셀 복사/붙여넣기)</h3>", unsafe_allow_html=True)
 raw_data = st.text_area("", height=150, label_visibility="collapsed")
 
-# --- [중단] 업데이트 버튼 (정중앙 배치) ---
+# --- [중단] 업데이트 버튼 및 시간 (수직 정중앙 정렬) ---
 st.markdown("<br>", unsafe_allow_html=True)
-# 비율을 조절하여 버튼을 정중앙으로 배치
-_, _, col_btn, _, _ = st.columns([1.5, 1, 1, 1, 1.5]) 
+# 버튼을 약간 오른쪽으로 보내기 위해 컬럼 비율 조정
+_, _, col_center, _, _ = st.columns([1.5, 1, 1.2, 0.8, 1.5]) 
 
-with col_btn:
+with col_center:
     st.markdown("""
         <style>
         div.stButton > button:first-child {
@@ -71,62 +71,70 @@ with col_btn:
                             val = parts[2].replace(',', '')
                             qty = int(float(val))
                             new_inventory[parts[0]] = {"곡종": parts[1], "재고량": qty}
-                        except ValueError:
-                            continue
-                
+                        except ValueError: continue
                 st.session_state.inventory_data = new_inventory
                 st.session_state.last_updated = get_seoul_time()
                 save_data(new_inventory, st.session_state.last_updated)
                 st.rerun() 
-            except Exception as e:
-                st.error("데이터 처리 중 오류가 발생했습니다.")
+            except: st.error("데이터 처리 오류")
     
-    st.markdown(f"<div style='text-align: center; font-weight: bold; margin-top: 10px; font-size: 14px; white-space: nowrap;'>{st.session_state.last_updated}</div>", unsafe_allow_html=True)
+    # 시간을 버튼의 정중앙에 맞추기 위해 텍스트 정렬 및 마진 조정
+    st.markdown(f"""
+        <div style='text-align: center; font-weight: bold; margin-top: 10px; font-size: 14px; width: 100%;'>
+            {st.session_state.last_updated}
+        </div>
+    """, unsafe_allow_html=True)
 
 # --- [하단] 재고현황표 도식화 ---
 st.markdown("<br>", unsafe_allow_html=True)
 
-# 총 재고수량 계산
 total_stock = sum(int(info["재고량"]) for info in st.session_state.inventory_data.values())
 
-# HTML 렌더링 함수
 def render_storage_map():
-    def get_content(name):
+    def get_content(name, color="black"):
         data = st.session_state.inventory_data.get(name, {"곡종": "-", "재고량": 0})
         qty_formatted = "{:,}".format(data.get("재고량", 0))
-        return f'<div style="color: blue; font-weight: bold; font-size: 11px;">{data["곡종"]}</div><div style="color: black; font-weight: bold; font-size: 13px;">{qty_formatted}</div><div style="color: green; font-size: 10px;">{name}</div>'
+        # 텍스트 크기 1pt 상향
+        return f'''
+            <div style="color: blue; font-weight: bold; font-size: 12px;">{data["곡종"]}</div>
+            <div style="color: {color}; font-weight: bold; font-size: 14px;">{qty_formatted}</div>
+            <div style="color: green; font-size: 11px;">{name}</div>
+        '''
 
     rows = [
         {"type": "circle", "names": [f"A10{i}" for i in range(1, 7)]},
-        {"type": "rect",   "names": [f"A20{i}" for i in range(1, 8)]},
+        {"type": "rect",   "names": [f"A20{i}" for i in range(1, 8)], "color": "#000080"}, # 감색 (Navy)
         {"type": "circle", "names": [f"A30{i}" for i in range(1, 7)]},
-        {"type": "rect",   "names": [f"A40{i}" for i in range(1, 8)]},
+        {"type": "rect",   "names": [f"A40{i}" for i in range(1, 8)], "color": "#4b4b4b"}, # 짙은 회색
         {"type": "circle", "names": [f"A50{i}" for i in range(1, 7)]}
     ]
 
+    # 회색 박스 하단 패딩(padding-bottom) 늘림
     html = f"""
-    <div style="background-color: #eeeeee; border: 1px solid #ccc; padding: 30px; border-radius: 10px;">
-        <h3 style="text-align: center; text-decoration: underline; font-weight: bold; margin-top: 0; margin-bottom: 20px;">일 일 재 고 현 황 표</h3>
-        <div style="display: flex; justify-content: center; margin-bottom: 30px;">
-            <div style="width: 150px; background: white; padding: 5px; border: 1px solid #333; text-align: center; font-size: 13px; font-weight: bold;">
-                총 재고수량: <span style="color: red;">{total_stock:,}</span>
-            </div>
+    <div style="background-color: #eeeeee; border: 1px solid #ccc; padding: 30px; padding-bottom: 80px; border-radius: 10px; display: flex; flex-direction: column; align-items: center;">
+        <h2 style="text-align: center; text-decoration: underline; font-weight: bold; margin-top: 0; margin-bottom: 25px; font-size: 28px;">일 일 재 고 현 황 표</h2>
+        
+        <div style="width: 150px; background: white; padding: 5px; border: 1px solid #333; text-align: center; font-size: 13px; font-weight: bold; margin-bottom: 40px;">
+            총 재고수량: <span style="color: red;">{total_stock:,}</span>
         </div>
-        <div style="display: flex; flex-direction: column; align-items: center;">
+        
+        <div style="position: relative; display: flex; flex-direction: column; align-items: center;">
     """
 
     for r_idx, row in enumerate(rows):
         is_circle = row["type"] == "circle"
-        margin = "-45px 0" if is_circle and r_idx > 0 else ("0" if not is_circle else "0 0 -45px 0")
+        # 동그라미가 사각형 사이 정중앙에 오도록 정교하게 마진 조정
+        # 사각형 폭이 110px이므로, 동그라미 사이 간격(gap)을 22px로 설정하여 중앙 매칭
+        margin = "-44px 0" if is_circle and r_idx > 0 else ("0" if not is_circle else "0 0 -44px 0")
         z_index = "2" if is_circle else "1"
-        gap = "28px" if is_circle else "0"
+        gap = "22px" if is_circle else "0"
         
         html += f'<div style="display: flex; justify-content: center; margin: {margin}; z-index: {z_index}; gap: {gap};">'
         for name in row["names"]:
             if is_circle:
-                html += f'<div style="width: 85px; height: 85px; border: 2px solid #333; border-radius: 50%; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 2px 2px 5px rgba(0,0,0,0.1);">{get_content(name)}</div>'
+                html += f'<div style="width: 88px; height: 88px; border: 2px solid #333; border-radius: 50%; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 2px 2px 5px rgba(0,0,0,0.15);">{get_content(name)}</div>'
             else:
-                html += f'<div style="width: 110px; height: 160px; border: 2px solid #333; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; margin-left: -2px;">{get_content(name)}</div>'
+                html += f'<div style="width: 110px; height: 160px; border: 2px solid #333; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; margin-left: -2px;">{get_content(name, row.get("color", "black"))}</div>'
         html += '</div>'
 
     html += "</div></div>"
