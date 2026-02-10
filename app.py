@@ -37,12 +37,12 @@ if 'last_updated' not in st.session_state:
 
 # --- [상단] 데이터 입력 섹션 (중앙 정렬) ---
 st.markdown("<h3 style='text-align: center;'>데이터 입력 (엑셀 복사/붙여넣기)</h3>", unsafe_allow_html=True)
-raw_data = st.text_area("", height=150)
+raw_data = st.text_area("", height=150, label_visibility="collapsed")
 
 # --- [중단] 업데이트 버튼 (정중앙 배치) ---
 st.markdown("<br>", unsafe_allow_html=True)
-# 7개 컬럼을 사용하여 중앙 정렬 최적화
-_, _, _, col_btn, _, _, _ = st.columns([1, 1, 1, 1.5, 1, 1, 1]) 
+# 비율을 조절하여 버튼을 정중앙으로 배치
+_, _, col_btn, _, _ = st.columns([1.5, 1, 1, 1, 1.5]) 
 
 with col_btn:
     st.markdown("""
@@ -67,13 +67,10 @@ with col_btn:
                 for line in lines:
                     parts = line.replace('\t', ' ').split()
                     if len(parts) >= 3:
-                        # 숫자가 아닌 행(제목 등)은 건너뜀
                         try:
                             val = parts[2].replace(',', '')
                             qty = int(float(val))
-                            name = parts[0]
-                            crop = parts[1]
-                            new_inventory[name] = {"곡종": crop, "재고량": qty}
+                            new_inventory[parts[0]] = {"곡종": parts[1], "재고량": qty}
                         except ValueError:
                             continue
                 
@@ -82,58 +79,57 @@ with col_btn:
                 save_data(new_inventory, st.session_state.last_updated)
                 st.rerun() 
             except Exception as e:
-                st.error(f"데이터 처리 오류")
+                st.error("데이터 처리 중 오류가 발생했습니다.")
     
-    st.markdown(f"<div style='text-align: center; font-weight: bold; margin-top: 10px; width: 250px; margin-left: -50px;'>{st.session_state.last_updated}</div>", unsafe_allow_html=True)
+    st.markdown(f"<div style='text-align: center; font-weight: bold; margin-top: 10px; font-size: 14px; white-space: nowrap;'>{st.session_state.last_updated}</div>", unsafe_allow_html=True)
 
 # --- [하단] 재고현황표 도식화 ---
 st.markdown("<br>", unsafe_allow_html=True)
 
+# 총 재고수량 계산
 total_stock = sum(int(info["재고량"]) for info in st.session_state.inventory_data.values())
 
-def get_content(name):
-    data = st.session_state.inventory_data.get(name, {"곡종": "-", "재고량": 0})
-    item = data.get("곡종", "-")
-    qty_formatted = "{:,}".format(data.get("재고량", 0))
-    return f'<div style="color: blue; font-weight: bold; font-size: 12px;">{item}</div><div style="color: black; font-weight: bold; font-size: 14px;">{qty_formatted}</div><div style="color: green; font-size: 11px;">{name}</div>'
+# HTML 렌더링 함수
+def render_storage_map():
+    def get_content(name):
+        data = st.session_state.inventory_data.get(name, {"곡종": "-", "재고량": 0})
+        qty_formatted = "{:,}".format(data.get("재고량", 0))
+        return f'<div style="color: blue; font-weight: bold; font-size: 11px;">{data["곡종"]}</div><div style="color: black; font-weight: bold; font-size: 13px;">{qty_formatted}</div><div style="color: green; font-size: 10px;">{name}</div>'
 
-# HTML 전체 덩어리 구성 (코드 노출 방지)
-html_drawing = f"""
-<div style="background-color: #f0f0f0; border: 1px solid #ccc; padding: 25px; border-radius: 10px; min-width: 900px;">
-    <h3 style="text-align: center; text-decoration: underline; font-weight: bold; margin-top: 5px; margin-bottom: 30px;">
-        일&nbsp;&nbsp;일&nbsp;&nbsp;재&nbsp;&nbsp;고&nbsp;&nbsp;현&nbsp;&nbsp;황&nbsp;&nbsp;표
-    </h3>
-    
-    <div style="display: flex; justify-content: center; margin-bottom: 40px;">
-        <div style="width: 140px; background: white; padding: 5px; border: 1px solid #333; text-align: center; font-size: 13px; font-weight: bold;">
-            총 재고수량: <span style="color: red;">{total_stock:,}</span>
+    rows = [
+        {"type": "circle", "names": [f"A10{i}" for i in range(1, 7)]},
+        {"type": "rect",   "names": [f"A20{i}" for i in range(1, 8)]},
+        {"type": "circle", "names": [f"A30{i}" for i in range(1, 7)]},
+        {"type": "rect",   "names": [f"A40{i}" for i in range(1, 8)]},
+        {"type": "circle", "names": [f"A50{i}" for i in range(1, 7)]}
+    ]
+
+    html = f"""
+    <div style="background-color: #eeeeee; border: 1px solid #ccc; padding: 30px; border-radius: 10px;">
+        <h3 style="text-align: center; text-decoration: underline; font-weight: bold; margin-top: 0; margin-bottom: 20px;">일 일 재 고 현 황 표</h3>
+        <div style="display: flex; justify-content: center; margin-bottom: 30px;">
+            <div style="width: 150px; background: white; padding: 5px; border: 1px solid #333; text-align: center; font-size: 13px; font-weight: bold;">
+                총 재고수량: <span style="color: red;">{total_stock:,}</span>
+            </div>
         </div>
-    </div>
+        <div style="display: flex; flex-direction: column; align-items: center;">
+    """
 
-    <div style="display: flex; flex-direction: column; align-items: center; position: relative;">
-"""
-
-layout_rows = [
-    {"type": "circle", "names": [f"A10{i}" for i in range(1, 7)]},
-    {"type": "rect",   "names": [f"A20{i}" for i in range(1, 8)]},
-    {"type": "circle", "names": [f"A30{i}" for i in range(1, 7)]},
-    {"type": "rect",   "names": [f"A40{i}" for i in range(1, 8)]},
-    {"type": "circle", "names": [f"A50{i}" for i in range(1, 7)]}
-]
-
-for r_idx, row in enumerate(layout_rows):
-    if row["type"] == "circle":
-        # 동그라미 배치: 사각형 폭에 맞춰 간격을 24px로 설정
-        html_drawing += '<div style="display: flex; justify-content: center; margin: -44px 0; z-index: 2; gap: 24px;">'
+    for r_idx, row in enumerate(rows):
+        is_circle = row["type"] == "circle"
+        margin = "-45px 0" if is_circle and r_idx > 0 else ("0" if not is_circle else "0 0 -45px 0")
+        z_index = "2" if is_circle else "1"
+        gap = "28px" if is_circle else "0"
+        
+        html += f'<div style="display: flex; justify-content: center; margin: {margin}; z-index: {z_index}; gap: {gap};">'
         for name in row["names"]:
-            html_drawing += f'<div style="width: 86px; height: 86px; border: 2px solid #333; border-radius: 50%; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 2px 2px 5px rgba(0,0,0,0.15);">{get_content(name)}</div>'
-    else:
-        # 사각형 배치: 밀착
-        html_drawing += '<div style="display: flex; justify-content: center; margin: 0; z-index: 1;">'
-        for name in row["names"]:
-            html_drawing += f'<div style="width: 110px; height: 160px; border: 2px solid #333; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; margin-left: -2px;">{get_content(name)}</div>'
-    html_drawing += '</div>'
+            if is_circle:
+                html += f'<div style="width: 85px; height: 85px; border: 2px solid #333; border-radius: 50%; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 2px 2px 5px rgba(0,0,0,0.1);">{get_content(name)}</div>'
+            else:
+                html += f'<div style="width: 110px; height: 160px; border: 2px solid #333; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; margin-left: -2px;">{get_content(name)}</div>'
+        html += '</div>'
 
-html_drawing += "</div></div>"
+    html += "</div></div>"
+    return html
 
-st.markdown(html_drawing, unsafe_allow_html=True)
+st.markdown(render_storage_map(), unsafe_allow_html=True)
