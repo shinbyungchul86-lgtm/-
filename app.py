@@ -39,9 +39,9 @@ if 'last_updated' not in st.session_state:
 st.markdown("<h3 style='text-align: center;'>데이터 입력 (엑셀 복사/붙여넣기)</h3>", unsafe_allow_html=True)
 raw_data = st.text_area("", height=150, label_visibility="collapsed")
 
-# --- [중단] 업데이트 버튼 및 시간 (크기 및 위치 조정) ---
+# --- [중단] 업데이트 버튼 및 시간 ---
 st.markdown("<br>", unsafe_allow_html=True)
-_, col_center, _ = st.columns([0.8, 1.4, 0.8]) # 버튼을 조금 더 크게 보이기 위해 컬럼 비율 조정
+_, col_center, _ = st.columns([0.8, 1.4, 0.8])
 
 with col_center:
     st.markdown("""
@@ -52,8 +52,8 @@ with col_center:
             border-radius: 15px;
             font-weight: bold;
             width: 100%;
-            height: 65px;    /* 버튼 높이 상향 */
-            font-size: 20px; /* 버튼 텍스트 크기 2pt 상향 */
+            height: 65px;
+            font-size: 20px;
             border: 2px solid #1e7e34;
         }
         </style>
@@ -78,7 +78,6 @@ with col_center:
                 st.rerun() 
             except: st.error("데이터 처리 오류")
     
-    # 시간 텍스트 크기 2pt 상향 (14px -> 16px)
     st.markdown(f"<div style='text-align: center; font-weight: bold; margin-top: 8px; font-size: 16px;'>{st.session_state.last_updated}</div>", unsafe_allow_html=True)
 
 # --- [하단] 재고현황표 도식화 데이터 계산 ---
@@ -92,11 +91,11 @@ circle_sum = sum(int(st.session_state.inventory_data.get(n, {"재고량":0})["�
 def get_item_html(name, is_rect=False):
     data = st.session_state.inventory_data.get(name, {"곡종": "-", "재고량": 0})
     qty_f = "{:,}".format(data.get("재고량", 0))
-    name_color = "#555555" # 장치장 이름: 짙은 회색 적용
+    name_color = "#555555"
     
     if is_rect:
-        crop_color = "#FF8C00" # 곡종: 짙은 주황색 (DarkOrange)
-        qty_color = "black"    # 재고수량: 검은색
+        crop_color = "#FF8C00" # 짙은 주황색
+        qty_color = "black"
     else:
         crop_color = "blue"
         qty_color = "black"
@@ -121,7 +120,7 @@ final_html = f"""
     <div style="min-width: 750px; background: white; padding: 15px 30px; border: 1px solid #333; text-align: center; font-size: 16px; font-weight: bold; margin-bottom: 50px; white-space: nowrap; box-shadow: 2px 2px 5px rgba(0,0,0,0.05);">
         총 재고수량 : <span style="color: red;">{total_stock:,}개</span> / 
         사각형 재고수량 : <span style="color: blue;">{rect_sum:,}개</span> / 
-        동그라미 재고수량 : <span style="color: green;">{circle_sum:,}개</span>
+        동그라미 재고수량 : <span style="color: #FF8C00;">{circle_sum:,}개</span>
     </div>
     <div style="display: flex; flex-direction: column; align-items: center;">
 """
@@ -129,12 +128,18 @@ final_html = f"""
 for r_idx, row in enumerate(rows_data):
     is_c = row["type"] == "circle"
     row_margin = "-44px 0" if is_c and r_idx > 0 else ("0 0 -44px 0" if is_c else "0")
-    row_gap = "22px" if is_c else "0"
     
-    final_html += f'<div style="display: flex; justify-content: center; margin: {row_margin}; z-index: {"2" if is_c else "1"}; gap: {row_gap};">'
-    for name in row["names"]:
+    final_html += f'<div style="display: flex; justify-content: center; margin: {row_margin}; z-index: {"2" if is_c else "1"};">'
+    for i, name in enumerate(row["names"]):
         if is_c:
-            final_html += f'<div style="width: 88px; height: 88px; border: 2px solid #333; border-radius: 50%; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 2px 2px 5px rgba(0,0,0,0.1);">{get_item_html(name, is_rect=False)}</div>'
+            # 동그라미 위치 미세 조정 (margin-left/right를 통해 좌우에서 안쪽으로 밀어줌)
+            circle_style = "width: 88px; height: 88px; border: 2px solid #333; border-radius: 50%; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 2px 2px 5px rgba(0,0,0,0.1); margin: 0 11px;"
+            if i == 0: circle_style += " margin-left: 20px;" # 첫번째 동그라미 오른쪽으로
+            if i == 1: circle_style += " margin-left: 15px;" # 두번째 동그라미 오른쪽으로
+            if i == 4: circle_style += " margin-right: 15px;" # 다섯번째 동그라미 왼쪽으로
+            if i == 5: circle_style += " margin-right: 20px;" # 마지막 동그라미 왼쪽으로
+            
+            final_html += f'<div style="{circle_style}">{get_item_html(name, is_rect=False)}</div>'
         else:
             final_html += f'<div style="width: 110px; height: 160px; border: 2px solid #333; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; margin-left: -2px;">{get_item_html(name, is_rect=True)}</div>'
     final_html += '</div>'
