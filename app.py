@@ -39,8 +39,10 @@ if 'last_updated' not in st.session_state:
 st.markdown("<h3 style='text-align: center;'>데이터 입력 (엑셀 복사/붙여넣기)</h3>", unsafe_allow_html=True)
 raw_data = st.text_area("", height=150, label_visibility="collapsed")
 
-# --- [중단] 업데이트 버튼 (X축 정중앙 배치) ---
+# --- [중단] 업데이트 버튼 및 시간 (위치 정밀 조정) ---
 st.markdown("<br>", unsafe_allow_html=True)
+
+# 현황표 박스와 동일한 중앙 정렬을 위해 1:1:1 컬럼 사용
 _, col_center, _ = st.columns([1, 1, 1])
 
 with col_center:
@@ -77,7 +79,8 @@ with col_center:
                 st.rerun() 
             except: st.error("데이터 처리 오류")
     
-    st.markdown(f"<div style='text-align: center; font-weight: bold; margin-top: 15px; font-size: 14px;'>{st.session_state.last_updated}</div>", unsafe_allow_html=True)
+    # 시간을 버튼 쪽으로 더 가깝게(위로) 밀착 조정
+    st.markdown(f"<div style='text-align: center; font-weight: bold; margin-top: 5px; font-size: 14px;'>{st.session_state.last_updated}</div>", unsafe_allow_html=True)
 
 # --- [하단] 재고현황표 도식화 데이터 계산 ---
 rect_names = [f"A20{i}" for i in range(1, 8)] + [f"A40{i}" for i in range(1, 8)]
@@ -87,20 +90,15 @@ total_stock = sum(int(info["재고량"]) for info in st.session_state.inventory_
 rect_sum = sum(int(st.session_state.inventory_data.get(n, {"재고량":0})["재고량"]) for n in rect_names)
 circle_sum = sum(int(st.session_state.inventory_data.get(n, {"재고량":0})["재고량"]) for n in circle_names)
 
-# 텍스트 색상 변경 로직 적용 함수
 def get_item_html(name, is_rect=False):
     data = st.session_state.inventory_data.get(name, {"곡종": "-", "재고량": 0})
     qty_f = "{:,}".format(data.get("재고량", 0))
-    
-    # 공통: 장치장(3번째 행)은 짙은 회색
-    name_color = "#555555"
+    name_color = "#555555" # 장치장 이름: 짙은 회색
     
     if is_rect:
-        # 사각형 구조용 색상 설정
-        crop_color = "orange"  # 첫 번째 행: 주황색
+        crop_color = "#000080"  # 첫 번째 행: 감색(Navy)으로 변경
         qty_color = "black"    # 두 번째 행: 검은색
     else:
-        # 동그라미 구조용 (기존 유지 혹은 필요시 변경)
         crop_color = "blue"
         qty_color = "black"
     
