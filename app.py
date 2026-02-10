@@ -2,8 +2,6 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 import pytz
-import json
-import os
 
 # 1. 페이지 설정
 st.set_page_config(layout="wide")
@@ -20,55 +18,73 @@ def get_seoul_time():
 
 # --- [상단] 데이터 입력 섹션 ---
 st.markdown("<h3 style='text-align: center;'>데이터 입력 (엑셀 복사/붙여넣기)</h3>", unsafe_allow_html=True)
-raw_data = st.text_area("", height=60, label_visibility="collapsed", key="data_input")
+raw_data = st.text_area("", height=60, label_visibility="collapsed")
 
-# --- [중단] 커스텀 투톤 버튼 및 위치 조정 ---
-# 1:2.5 비율로 나누어 버튼을 최대한 오른쪽 끝으로 밀어냅니다.
-_, col_btn = st.columns([1, 2.5])
+# --- [중단] 버튼 투톤 색상 및 우측 정렬 (강력 보정 버전) ---
+# 왼쪽 빈 공간(4) : 버튼 공간(1) 비율로 버튼을 오른쪽 끝으로 배치
+_, col_btn = st.columns([4, 1])
 
 with col_btn:
-    # CSS: 버튼 내부를 초록/검정으로 정확히 쪼개고 텍스트 색상 개별 적용
     st.markdown(f"""
         <style>
-        div.stButton > button:first-child {{
-            width: 320px; /* 버튼 크기 고정 */
-            height: 90px;
-            float: right; /* 버튼 자체를 우측 정렬 */
+        /* 버튼 본체 스타일 - 상하 색상 강제 분리 */
+        div.stButton > button {{
+            width: 100% !important;
+            height: 100px !important;
             padding: 0 !important;
             border: 2px solid #333 !important;
-            border-radius: 12px !important;
-            background: linear-gradient(to bottom, #28a745 50%, #000000 50%) !important;
-            color: transparent !important; /* 기본 라벨 숨김 */
-            position: relative;
-            overflow: hidden;
-            box-shadow: 2px 2px 10px rgba(0,0,0,0.15);
+            border-radius: 10px !important;
+            /* 위 50%는 초록, 아래 50%는 검정 (경계선 선명하게) */
+            background: linear-gradient(to bottom, #28a745 0%, #28a745 50%, #000000 50%, #000000 100%) !important;
+            color: transparent !important; /* 기본 흰색 텍스트 제거 */
+            position: relative !important;
+            overflow: hidden !important;
+            display: block !important;
         }}
-        
-        /* 상단: 초록색 배경 위 검은색 텍스트 */
-        div.stButton > button:first-child::before {{
-            content: "현황표 업데이트";
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 50%;
-            display: flex; align-items: center; justify-content: center;
-            color: black !important;
+
+        /* 상단 텍스트 레이어: 현황표 업데이트 (검은색 글자) */
+        div.stButton > button::before {{
+            content: "현황표 업데이트" !important;
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100% !important;
+            height: 50% !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            color: #000000 !important;
             font-size: 18px !important;
             font-weight: bold !important;
+            z-index: 10 !important;
         }}
-        
-        /* 하단: 검은색 배경 위 흰색 텍스트 */
-        div.stButton > button:first-child::after {{
-            content: "{st.session_state.last_updated}";
-            position: absolute;
-            bottom: 0; left: 0; width: 100%; height: 50%;
-            display: flex; align-items: center; justify-content: center;
-            color: white !important;
+
+        /* 하단 텍스트 레이어: 시간 (흰색 글자) */
+        div.stButton > button::after {{
+            content: "{st.session_state.last_updated}" !important;
+            position: absolute !important;
+            bottom: 0 !important;
+            left: 0 !important;
+            width: 100% !important;
+            height: 50% !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            color: #ffffff !important;
             font-size: 13px !important;
             font-weight: normal !important;
+            z-index: 10 !important;
+        }}
+        
+        /* 버튼 클릭 시 발생하는 기본 효과 제거 (색상 유지) */
+        div.stButton > button:active, div.stButton > button:focus, div.stButton > button:hover {{
+            background: linear-gradient(to bottom, #28a745 0%, #28a745 50%, #000000 50%, #000000 100%) !important;
+            border-color: #333 !important;
         }}
         </style>
     """, unsafe_allow_html=True)
 
-    if st.button("Update_Trigger"): # 실제 작동을 위한 트리거
+    if st.button("현황표_업데이트_실행"):
         if raw_data.strip():
             lines = raw_data.strip().split('\n')
             new_inv = {}
@@ -83,5 +99,5 @@ with col_btn:
             st.session_state.last_updated = get_seoul_time()
             st.rerun()
 
-# --- [하단] 도식화 레이아웃 로직 (사각형 밀착 버전) ---
-# ... (이후 렌더링 코드는 이전과 동일하게 유지)
+# --- [하단] 도식화 레이아웃 (이전 답변 코드 유지) ---
+# ... (생략된 현황표 렌더링 코드) ...
