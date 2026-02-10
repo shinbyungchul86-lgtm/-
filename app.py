@@ -8,7 +8,7 @@ import os
 # 1. 페이지 설정
 st.set_page_config(layout="wide")
 
-# 2. 세션 상태 초기화 (에러 방지용)
+# 2. 세션 상태 초기화
 if 'inventory_data' not in st.session_state:
     st.session_state.inventory_data = {}
 if 'last_updated' not in st.session_state:
@@ -40,13 +40,49 @@ if not st.session_state.inventory_data or st.session_state.last_updated == "업�
 
 # --- [상단] 데이터 입력 섹션 ---
 st.markdown("<h3 style='text-align: center;'>데이터 입력 (엑셀 복사/붙여넣기)</h3>", unsafe_allow_html=True)
-raw_data = st.text_area("", height=100, label_visibility="collapsed")
+raw_data = st.text_area("", height=80, label_visibility="collapsed")
 
-# --- [중단] 업데이트 버튼 ---
-_, col_center, _ = st.columns([0.8, 1.4, 0.8])
-with col_center:
-    st.markdown("<style>div.stButton > button:first-child { background-color: #28a745; color: white; border-radius: 15px; font-weight: bold; width: 100%; height: 65px; font-size: 20px; border: 2px solid #1e7e34; }</style>", unsafe_allow_html=True)
-    if st.button("현황표 업데이트"):
+# --- [중단] 업데이트 버튼 (오른쪽 배치 및 버튼 내 텍스트 2줄) ---
+# 컬럼 비중을 조절하여 버튼을 오른쪽으로 밀어냅니다 (1:1:2 비율)
+col1, col2, col3 = st.columns([1, 0.5, 2.5])
+
+with col3:
+    # 버튼 스타일 정의 (white-space: pre-wrap으로 줄바꿈 허용)
+    st.markdown(f"""
+        <style>
+        div.stButton > button:first-child {{
+            background-color: #28a745;
+            color: white;
+            border-radius: 12px;
+            width: 100%;
+            height: 80px;
+            border: 2px solid #1e7e34;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            white-space: pre-wrap;
+            line-height: 1.4;
+        }}
+        /* 버튼 텍스트의 첫 줄(제목) 스타일 */
+        .btn-title {{
+            font-size: 20px;
+            font-weight: bold;
+            display: block;
+        }}
+        /* 버튼 텍스트의 둘째 줄(시간) 스타일 */
+        .btn-time {{
+            font-size: 14px;
+            font-weight: normal;
+            display: block;
+        }}
+        </style>
+    """, unsafe_allow_html=True)
+    
+    # 버튼 내부 텍스트 구성
+    button_label = f"현황표 업데이트\n{st.session_state.last_updated}"
+    
+    if st.button(button_label):
         if raw_data.strip():
             lines = raw_data.strip().split('\n')
             new_inventory = {}
@@ -61,13 +97,11 @@ with col_center:
             st.session_state.last_updated = get_seoul_time()
             save_data(new_inventory, st.session_state.last_updated)
             st.rerun()
-    st.markdown(f"<div style='text-align: center; font-weight: bold; margin-top: 8px; font-size: 16px;'>{st.session_state.last_updated}</div>", unsafe_allow_html=True)
 
-# --- [하단] 도식화 레이아웃 ---
+# --- [하단] 도식화 레이아웃 (이전과 동일) ---
 rect_rows = [[f"A20{i}" for i in range(1, 8)], [f"A40{i}" for i in range(1, 8)]]
 circle_rows = [[f"A10{i}" for i in range(1, 7)], [f"A30{i}" for i in range(1, 7)], [f"A50{i}" for i in range(1, 7)]]
 
-# 재고량 계산
 total_stock = sum(int(info.get("재고량", 0)) for info in st.session_state.inventory_data.values())
 rect_sum = sum(int(st.session_state.inventory_data.get(n, {"재고량":0})["재고량"]) for row in rect_rows for n in row)
 circle_sum = sum(int(st.session_state.inventory_data.get(n, {"재고량":0})["재고량"]) for row in circle_rows for n in row)
@@ -80,7 +114,6 @@ def get_item_html(name, is_rect=False):
            f'<div style="color: black; font-weight: bold; font-size: 14px; line-height:1.1;">{qty_f}</div>' \
            f'<div style="color: #555555; font-size: 11px; line-height:1.1;">{name}</div>'
 
-# HTML 렌더링
 final_html = f"""
 <div style="background-color: #eeeeee; padding: 40px 20px 100px 20px; border-radius: 10px; display: flex; flex-direction: column; align-items: center; font-family: 'Malgun Gothic', sans-serif;">
     <h2 style="text-align: center; text-decoration: underline; font-weight: bold; margin-bottom: 25px; font-size: 28px; letter-spacing: 0.25em;">일 일 재 고 현 황 표</h2>
@@ -89,23 +122,19 @@ final_html = f"""
         사각형 재고수량 : <span style="color: blue;">{rect_sum:,}개</span> / 
         동그라미 재고수량 : <span style="color: #FF8C00;">{circle_sum:,}개</span>
     </div>
-    <div style="position: relative; width: 758px; height: 400px; margin-top: 50px;">
+    <div style="position: relative; width: 758px; height: 380px; margin-top: 50px;">
 """
 
-# 사각형 렌더링 (간격 없음)
 for r_idx, row in enumerate(rect_rows):
-    y_pos = r_idx * 158  # 160px height - 2px border overlap
+    y_pos = r_idx * 158
     for c_idx, name in enumerate(row):
-        x_pos = c_idx * 108
-        final_html += f'<div style="position: absolute; left: {x_pos}px; top: {y_pos}px; width: 110px; height: 160px; border: 2px solid #333; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1;">{get_item_html(name, True)}</div>'
+        final_html += f'<div style="position: absolute; left: {c_idx * 108}px; top: {y_pos}px; width: 110px; height: 160px; border: 2px solid #333; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1;">{get_item_html(name, True)}</div>'
 
-# 동그라미 렌더링 (경계선 위 정렬)
 y_offsets = [-44, 114, 272]
 for r_idx, row in enumerate(circle_rows):
-    y_pos = y_offsets[r_idx]
     for c_idx, name in enumerate(row):
         x_pos = (c_idx + 1) * 108 - 44
-        final_html += f'<div style="position: absolute; left: {x_pos}px; top: {y_pos}px; width: 88px; height: 88px; border: 2px solid #333; border-radius: 50%; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 2; box-shadow: 2px 2px 5px rgba(0,0,0,0.1);">{get_item_html(name, False)}</div>'
+        final_html += f'<div style="position: absolute; left: {x_pos}px; top: {y_offsets[r_idx]}px; width: 88px; height: 88px; border: 2px solid #333; border-radius: 50%; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 2; box-shadow: 2px 2px 5px rgba(0,0,0,0.1);">{get_item_html(name, False)}</div>'
 
 final_html += "</div></div>"
 st.markdown(final_html, unsafe_allow_html=True)
