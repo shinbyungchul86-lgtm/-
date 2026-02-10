@@ -134,12 +134,12 @@ for r_idx, row in enumerate(rows_data):
         if is_c:
             # 동그라미 위치 미세 조정 (margin-left/right를 통해 좌우에서 안쪽으로 밀어줌)
             circle_style = "width: 88px; height: 88px; border: 2px solid #333; border-radius: 50%; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 2px 2px 5px rgba(0,0,0,0.1); margin: 0 11px;"
-            if i == 0: circle_style += " margin-right: 30px;" # 첫번째 동그라미 오른쪽으로
-            if i == 1: circle_style += " margin-right: 30px;" # 두번째 동그라미 오른쪽으로
-            if i == 2: circle_style += " margin-right: 20px;" # 두번째 동그라미 오른쪽으로
-            if i == 3: circle_style += " margin-left: 20px;" # 다섯번째 동그라미 왼쪽으로
-            if i == 4: circle_style += " margin-left: 30px;" # 다섯번째 동그라미 왼쪽으로
-            if i == 5: circle_style += " margin-left: 30px;" # 마지막 동그라미 왼쪽으로
+            if i == 0: circle_style += " margin-right: 0px;" # 첫번째 동그라미 오른쪽으로
+            if i == 1: circle_style += " margin-right: 0px;" # 두번째 동그라미 오른쪽으로
+            if i == 2: circle_style += " margin-right: 0px;" # 두번째 동그라미 오른쪽으로
+            if i == 3: circle_style += " margin-left: 0px;" # 다섯번째 동그라미 왼쪽으로
+            if i == 4: circle_style += " margin-left: 0px;" # 다섯번째 동그라미 왼쪽으로
+            if i == 5: circle_style += " margin-left: 0px;" # 마지막 동그라미 왼쪽으로
             
             final_html += f'<div style="{circle_style}">{get_item_html(name, is_rect=False)}</div>'
         else:
