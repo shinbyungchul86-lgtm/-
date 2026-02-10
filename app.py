@@ -33,7 +33,7 @@ with col1:
             st.warning("데이터를 입력해주세요.")
 
 with col2:
-    st.markdown(f"<br><b>{st.session_state.last_updated}</b>", unsafe_allow_label=True)
+    st.markdown(f"<br><b>{st.session_state.last_updated}</b>", unsafe_allow_html=True)
 
 # --- 하단: 창고 도식화 섹션 ---
 st.divider()
