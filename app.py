@@ -39,10 +39,10 @@ if 'last_updated' not in st.session_state:
 st.markdown("<h3 style='text-align: center;'>데이터 입력 (엑셀 복사/붙여넣기)</h3>", unsafe_allow_html=True)
 raw_data = st.text_area("", height=150, label_visibility="collapsed")
 
-# --- [중단] 업데이트 버튼 및 시간 (중앙 정렬 보정) ---
+# --- [중단] 업데이트 버튼 (X축 정중앙 배치) ---
 st.markdown("<br>", unsafe_allow_html=True)
-# 버튼을 X축 중앙에 완벽히 배치하기 위해 3개 컬럼 사용 (1:1:1)
-_, col_center, _ = st.columns([1, 1, 1]) 
+# 3개 컬럼을 1:1:1로 나누어 중앙 버튼 배치
+_, col_center, _ = st.columns([1, 1, 1])
 
 with col_center:
     st.markdown("""
@@ -78,29 +78,25 @@ with col_center:
                 st.rerun() 
             except: st.error("데이터 처리 오류")
     
-    # 시간을 버튼 아래로 이동 (중앙 정렬)
-    st.markdown(f"<div style='text-align: center; font-weight: bold; margin-top: 15px; font-size: 14px; width: 100%;'>{st.session_state.last_updated}</div>", unsafe_allow_html=True)
+    # 시간을 버튼 아래로 배치 (중앙 정렬)
+    st.markdown(f"<div style='text-align: center; font-weight: bold; margin-top: 15px; font-size: 14px;'>{st.session_state.last_updated}</div>", unsafe_allow_html=True)
 
 # --- [하단] 재고현황표 도식화 데이터 계산 ---
-st.markdown("<br>", unsafe_allow_html=True)
-
-# 도형별 재고 계산 로직
 rect_names = [f"A20{i}" for i in range(1, 8)] + [f"A40{i}" for i in range(1, 8)]
 circle_names = [f"A10{i}" for i in range(1, 7)] + [f"A30{i}" for i in range(1, 7)] + [f"A50{i}" for i in range(1, 7)]
 
 total_stock = sum(int(info["재고량"]) for info in st.session_state.inventory_data.values())
-rect_stock = sum(int(st.session_state.inventory_data.get(name, {"재고량": 0})["재고량"]) for name in rect_names)
-circle_stock = sum(int(st.session_state.inventory_data.get(name, {"재고량": 0})["재고량"]) for name in circle_names)
+rect_sum = sum(int(st.session_state.inventory_data.get(n, {"재고량":0})["재고량"]) for n in rect_names)
+circle_sum = sum(int(st.session_state.inventory_data.get(n, {"재고량":0})["재고량"]) for n in circle_names)
 
 def get_item_html(name, qty_color="black", is_rect=False):
     data = st.session_state.inventory_data.get(name, {"곡종": "-", "재고량": 0})
     qty_f = "{:,}".format(data.get("재고량", 0))
-    crop_color = "#000050" if is_rect else "blue"
-    name_color = "#555555" 
-    
-    return f"""<div style="color: {crop_color}; font-weight: bold; font-size: 12px;">{data['곡종']}</div>
-               <div style="color: {qty_color}; font-weight: bold; font-size: 14px;">{qty_f}</div>
-               <div style="color: {name_color}; font-size: 11px;">{name}</div>"""
+    crop_color = "#000050" if is_rect else "blue" # 사각형 곡종: 짙은 감색
+    name_color = "#555555" # 장치장 이름: 짙은 회색
+    return f'<div style="color: {crop_color}; font-weight: bold; font-size: 12px;">{data["곡종"]}</div>' \
+           f'<div style="color: {qty_color}; font-weight: bold; font-size: 14px;">{qty_f}</div>' \
+           f'<div style="color: {name_color}; font-size: 11px;">{name}</div>'
 
 # 도면 구조 정의
 rows_data = [
@@ -111,35 +107,32 @@ rows_data = [
     {"type": "circle", "names": [f"A50{i}" for i in range(1, 7)]}
 ]
 
-# 전체 HTML 결합
-# 자간(letter-spacing) 0.25em으로 조정 (기존 0.5em의 반)
-main_content = f"""
-<div style="background-color: #eeeeee; border: 1px solid #ccc; padding: 40px 20px 100px 20px; border-radius: 10px; display: flex; flex-direction: column; align-items: center; font-family: sans-serif;">
-    <h2 style="text-align: center; text-decoration: underline; font-weight: bold; margin: 0 0 25px 0; font-size: 28px; letter-spacing: 0.25em; width: 100%;">일 일 재 고 현 황 표</h2>
-    
-    <div style="width: auto; min-width: 600px; background: white; padding: 10px 20px; border: 1px solid #333; text-align: center; font-size: 15px; font-weight: bold; margin-bottom: 50px; white-space: nowrap;">
+# 전체 HTML 생성 (한 덩어리로 묶어 코드 노출 방지)
+final_html = f"""
+<div style="background-color: #eeeeee; border: 1px solid #ccc; padding: 40px 20px 100px 20px; border-radius: 10px; display: flex; flex-direction: column; align-items: center; font-family: 'Malgun Gothic', sans-serif;">
+    <h2 style="text-align: center; text-decoration: underline; font-weight: bold; margin: 0 0 25px 0; font-size: 28px; letter-spacing: 0.25em;">일 일 재 고 현 황 표</h2>
+    <div style="min-width: 700px; background: white; padding: 12px 25px; border: 1px solid #333; text-align: center; font-size: 15px; font-weight: bold; margin-bottom: 50px; white-space: nowrap; box-shadow: 2px 2px 5px rgba(0,0,0,0.05);">
         총 재고수량 : <span style="color: red;">{total_stock:,}개</span> / 
-        사각형 재고수량 : <span style="color: blue;">{rect_stock:,}개</span> / 
-        동그라미 재고수량 : <span style="color: green;">{circle_stock:,}개</span>
+        사각형 재고수량 : <span style="color: blue;">{rect_sum:,}개</span> / 
+        동그라미 재고수량 : <span style="color: green;">{circle_sum:,}개</span>
     </div>
-    
-    <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
+    <div style="display: flex; flex-direction: column; align-items: center;">
 """
 
 for r_idx, row in enumerate(rows_data):
-    is_circle = row["type"] == "circle"
-    row_margin = "-44px 0" if is_circle and r_idx > 0 else ("0 0 -44px 0" if is_circle else "0")
-    row_z = "2" if is_circle else "1"
-    row_gap = "22px" if is_circle else "0"
+    is_c = row["type"] == "circle"
+    row_margin = "-44px 0" if is_c and r_idx > 0 else ("0 0 -44px 0" if is_c else "0")
+    row_gap = "22px" if is_c else "0"
     
-    main_content += f'<div style="display: flex; justify-content: center; margin: {row_margin}; z-index: {row_z}; gap: {row_gap};">'
+    final_html += f'<div style="display: flex; justify-content: center; margin: {row_margin}; z-index: {"2" if is_c else "1"}; gap: {row_gap};">'
     for name in row["names"]:
-        if is_circle:
-            main_content += f'<div style="width: 88px; height: 88px; border: 2px solid #333; border-radius: 50%; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 2px 2px 5px rgba(0,0,0,0.15);">{get_item_html(name)}</div>'
+        if is_c:
+            final_html += f'<div style="width: 88px; height: 88px; border: 2px solid #333; border-radius: 50%; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 2px 2px 5px rgba(0,0,0,0.1);">{get_item_html(name)}</div>'
         else:
-            main_content += f'<div style="width: 110px; height: 160px; border: 2px solid #333; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; margin-left: -2px;">{get_item_html(name, row.get("color", "black"), is_rect=True)}</div>'
-    main_content += '</div>'
+            final_html += f'<div style="width: 110px; height: 160px; border: 2px solid #333; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; margin-left: -2px;">{get_item_html(name, row.get("color", "black"), is_rect=True)}</div>'
+    final_html += '</div>'
 
-main_content += "</div></div>"
+final_html += "</div></div>"
 
-st.markdown(main_content, unsafe_allow_html=True)
+# 최종 출력
+st.markdown(final_html, unsafe_allow_html=True)
