@@ -39,11 +39,9 @@ if 'last_updated' not in st.session_state:
 st.markdown("<h3 style='text-align: center;'>데이터 입력 (엑셀 복사/붙여넣기)</h3>", unsafe_allow_html=True)
 raw_data = st.text_area("", height=150, label_visibility="collapsed")
 
-# --- [중단] 업데이트 버튼 및 시간 (위치 정밀 조정) ---
+# --- [중단] 업데이트 버튼 및 시간 (크기 및 위치 조정) ---
 st.markdown("<br>", unsafe_allow_html=True)
-
-# 현황표 박스와 동일한 중앙 정렬을 위해 1:1:1 컬럼 사용
-_, col_center, _ = st.columns([1, 1, 1])
+_, col_center, _ = st.columns([0.8, 1.4, 0.8]) # 버튼을 조금 더 크게 보이기 위해 컬럼 비율 조정
 
 with col_center:
     st.markdown("""
@@ -54,8 +52,9 @@ with col_center:
             border-radius: 15px;
             font-weight: bold;
             width: 100%;
-            height: 50px;
-            font-size: 18px;
+            height: 65px;    /* 버튼 높이 상향 */
+            font-size: 20px; /* 버튼 텍스트 크기 2pt 상향 */
+            border: 2px solid #1e7e34;
         }
         </style>
     """, unsafe_allow_html=True)
@@ -79,8 +78,8 @@ with col_center:
                 st.rerun() 
             except: st.error("데이터 처리 오류")
     
-    # 시간을 버튼 쪽으로 더 가깝게(위로) 밀착 조정
-    st.markdown(f"<div style='text-align: center; font-weight: bold; margin-top: 5px; font-size: 14px;'>{st.session_state.last_updated}</div>", unsafe_allow_html=True)
+    # 시간 텍스트 크기 2pt 상향 (14px -> 16px)
+    st.markdown(f"<div style='text-align: center; font-weight: bold; margin-top: 8px; font-size: 16px;'>{st.session_state.last_updated}</div>", unsafe_allow_html=True)
 
 # --- [하단] 재고현황표 도식화 데이터 계산 ---
 rect_names = [f"A20{i}" for i in range(1, 8)] + [f"A40{i}" for i in range(1, 8)]
@@ -93,11 +92,11 @@ circle_sum = sum(int(st.session_state.inventory_data.get(n, {"재고량":0})["�
 def get_item_html(name, is_rect=False):
     data = st.session_state.inventory_data.get(name, {"곡종": "-", "재고량": 0})
     qty_f = "{:,}".format(data.get("재고량", 0))
-    name_color = "#555555" # 장치장 이름: 짙은 회색
+    name_color = "#555555" # 장치장 이름: 짙은 회색 적용
     
     if is_rect:
-        crop_color = "#000080"  # 첫 번째 행: 감색(Navy)으로 변경
-        qty_color = "black"    # 두 번째 행: 검은색
+        crop_color = "#FF8C00" # 곡종: 짙은 주황색 (DarkOrange)
+        qty_color = "black"    # 재고수량: 검은색
     else:
         crop_color = "blue"
         qty_color = "black"
@@ -119,7 +118,7 @@ rows_data = [
 final_html = f"""
 <div style="background-color: #eeeeee; border: 1px solid #ccc; padding: 40px 20px 100px 20px; border-radius: 10px; display: flex; flex-direction: column; align-items: center; font-family: 'Malgun Gothic', sans-serif;">
     <h2 style="text-align: center; text-decoration: underline; font-weight: bold; margin: 0 0 25px 0; font-size: 28px; letter-spacing: 0.25em;">일 일 재 고 현 황 표</h2>
-    <div style="min-width: 700px; background: white; padding: 12px 25px; border: 1px solid #333; text-align: center; font-size: 15px; font-weight: bold; margin-bottom: 50px; white-space: nowrap; box-shadow: 2px 2px 5px rgba(0,0,0,0.05);">
+    <div style="min-width: 750px; background: white; padding: 15px 30px; border: 1px solid #333; text-align: center; font-size: 16px; font-weight: bold; margin-bottom: 50px; white-space: nowrap; box-shadow: 2px 2px 5px rgba(0,0,0,0.05);">
         총 재고수량 : <span style="color: red;">{total_stock:,}개</span> / 
         사각형 재고수량 : <span style="color: blue;">{rect_sum:,}개</span> / 
         동그라미 재고수량 : <span style="color: green;">{circle_sum:,}개</span>
